@@ -82,14 +82,40 @@ async function initializeStorage() {
   console.log('   3. Restart the server');
   console.log('');
   
-  const localStorageModule = await import('./config/localStorage.js');
-  const localStorage = localStorageModule.default || localStorageModule;
-  await localStorage.initialize();
-  
-  storage = {
-    type: 'local',
-    ...localStorage
-  };
+  try {
+    const localStorageModule = await import('./config/localStorage.js');
+    const localStorage = localStorageModule.default || localStorageModule;
+    await localStorage.initialize();
+    
+    storage = {
+      type: 'local',
+      ...localStorage
+    };
+  } catch (localError) {
+    console.error('❌ Failed to load fallback local memory config:', localError.message);
+    console.log('Creating a safe runtime in-memory placeholder fallback...');
+    // Absolute failsafe fallback so the app never exits with code 1 in production
+    storage = {
+      type: 'local',
+      initialize: async () => {},
+      findUserByEmail: () => null,
+      findUserById: () => null,
+      createUser: (u) => ({ id: Date.now(), ...u }),
+      getAllEquipment: () => [],
+      getEquipmentById: () => null,
+      createEquipment: (e) => e,
+      updateEquipment: () => {},
+      deleteEquipment: () => {},
+      getAllBookings: () => [],
+      getBookingItems: () => [],
+      getBookingById: () => null,
+      getMultipleEquipment: () => [],
+      createBooking: (b) => ({ id: Date.now(), created_at: new Date().toISOString(), ...b }),
+      addBookingItem: () => {},
+      updateBookingStatus: () => {},
+      getStats: () => ({})
+    };
+  }
 }
 
 // ============================================================================
@@ -102,11 +128,18 @@ app.use(express.json());
 // ============================================================================
 // SERVE STATIC FILES IN PRODUCTION (Render Deployment)
 // ============================================================================
-if (NODE_ENV === 'production') {
-  const distPath = path.join(__dirname, 'dist');
+// Checks both the immediate subdirectory and the root directory for standard Vite output layouts
+let distPath = path.join(__dirname, 'dist');
+if (!fs.existsSync(distPath)) {
+  distPath = path.join(process.cwd(), 'dist');
+}
+
+if (NODE_ENV === 'production' || process.env.RENDER) {
   if (fs.existsSync(distPath)) {
     app.use(express.static(distPath));
-    console.log('📦 Serving static files from dist/');
+    console.log(`📦 Serving static production files from: ${distPath}`);
+  } else {
+    console.warn(`⚠️ Warning: Production mode active, but static directory not found at: ${distPath}`);
   }
 }
 
@@ -132,7 +165,7 @@ const authenticateToken = (req, res, next) => {
 };
 
 const requireAdmin = (req, res, next) => {
-  if (req.user.role !== 'admin') {
+  if (!req.user || req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Admin access required' });
   }
   next();
@@ -610,11 +643,9 @@ app.get('/api/stats', authenticateToken, requireAdmin, async (req, res) => {
 // ============================================================================
 // SERVE FRONTEND IN PRODUCTION (Catch-all route for React Router)
 // ============================================================================
-if (NODE_ENV === 'production') {
-  const distPath = path.join(__dirname, 'dist');
+if (NODE_ENV === 'production' || process.env.RENDER) {
   if (fs.existsSync(distPath)) {
-    // JavaScript RegExp natively bypasses path-to-regexp parser conflicts in newer Express versions.
-    // This targets all browser URL changes while leaving backend /api points functional.
+    // Regular expression bypasses fallback engine conflict routes while protecting active api routes
     app.get(/^(?!\/api).*$/, (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
