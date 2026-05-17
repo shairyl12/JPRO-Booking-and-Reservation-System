@@ -1,0 +1,49 @@
+# ============================================================================
+# RENDER DEPLOYMENT CONFIGURATION
+# ============================================================================
+# This file configures how Render deploys your application
+# Render will automatically detect and use this file
+# ============================================================================
+
+services:
+  # Backend Web Service (Node.js)
+  - type: web
+    name: jpro-rentals-backend
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    # Build command: install deps + build frontend
+    buildCommand: npm install && npm run build
+    # Start command: run the server
+    startCommand: node server.js
+    # Auto-deploy on push to main branch
+    autoDeploy: true
+    # Health check path
+    healthCheckPath: /api/equipment
+    # Environment variables
+    envVars:
+      # Node environment
+      - key: NODE_ENV
+        value: production
+      # JWT Secret (CHANGE THIS TO YOUR OWN SECRET)
+      - key: JWT_SECRET
+        generateValue: true
+      # Database Configuration (Aiven MySQL)
+      # Replace these with your actual Aiven credentials
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "21464"
+      - key: DB_USER
+        value: avnadmin
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        value: jpro_rentals
+      # API URL (auto-detected by frontend)
+      - key: VITE_API_URL
+        fromService:
+          name: jpro-rentals-backend
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
