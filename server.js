@@ -613,7 +613,8 @@ app.get('/api/stats', authenticateToken, requireAdmin, async (req, res) => {
 if (NODE_ENV === 'production') {
   const distPath = path.join(__dirname, 'dist');
   if (fs.existsSync(distPath)) {
-    app.get('*', (req, res) => {
+    // Express 5 strict parser fix: Using a named parameter placeholder with zero-or-more regex matching
+    app.get('/:splat*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
