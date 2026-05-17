@@ -8,13 +8,18 @@
 // 2. LOCAL MODE: Uses in-memory storage (for quick testing)
 // ============================================================================
 
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const path = require('path');
-const fs = require('fs');
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+// Resolve __dirname since it's not natively available in ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -41,7 +46,8 @@ async function initializeStorage() {
       console.log('  🗄️  DATABASE MODE - Connecting to Aiven MySQL');
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
       
-      const { pool, testConnection, initializeDatabase, seedData } = require('./config/database');
+      // Dynamic import used here to match your original conditional loading behavior in ESM
+      const { pool, testConnection, initializeDatabase, seedData } = await import('./config/database.js');
       
       const connected = await testConnection();
       if (connected) {
@@ -76,7 +82,8 @@ async function initializeStorage() {
   console.log('   3. Restart the server');
   console.log('');
   
-  const localStorage = require('./config/localStorage');
+  const localStorageModule = await import('./config/localStorage.js');
+  const localStorage = localStorageModule.default || localStorageModule;
   await localStorage.initialize();
   
   storage = {
@@ -637,4 +644,4 @@ startServer().catch(error => {
   process.exit(1);
 });
 
-module.exports = app;
+export default app;
