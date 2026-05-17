@@ -613,8 +613,9 @@ app.get('/api/stats', authenticateToken, requireAdmin, async (req, res) => {
 if (NODE_ENV === 'production') {
   const distPath = path.join(__dirname, 'dist');
   if (fs.existsSync(distPath)) {
-    // Compliant Express v5 catch-all parameter syntax using named pattern routing to avoid strict PathErrors
-    app.get('/:any(.*)', (req, res) => {
+    // JavaScript RegExp natively bypasses path-to-regexp parser conflicts in newer Express versions.
+    // This targets all browser URL changes while leaving backend /api points functional.
+    app.get(/^(?!\/api).*$/, (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
