@@ -25,7 +25,7 @@ async function testConnection() {
 
   console.log('📋 Database Configuration:');
   console.log(`   Host: ${process.env.DB_HOST}`);
-  console.log(`   Port: ${process.env.DB_PORT || '21464'}`);
+  console.log(`   Port: ${process.env.DB_PORT || '18059'}`);
   console.log(`   User: ${process.env.DB_USER}`);
   console.log(`   Database: ${process.env.DB_NAME}`);
   console.log('');
@@ -35,7 +35,7 @@ async function testConnection() {
 
     const connection = await mysql.createConnection({
       host: process.env.DB_HOST,
-      port: parseInt(process.env.DB_PORT || '21464'),
+      port: parseInt(process.env.DB_PORT || '18059'),
       user: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
